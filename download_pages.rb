@@ -2,7 +2,6 @@ require 'open-uri'
 require 'nokogiri'
 require 'json'
 
-=begin
 # Create structure of folders
 Dir.mkdir('pages') if !File.exists?('pages')
 Dir.mkdir('partners') if !File.exists?('partners')
@@ -45,7 +44,6 @@ urls.each_with_index do |page_url, index|
 end
 
 puts "Pages downloaded #{urls.count}\t\t"
-=end
 
 # Scrap information about partner
 partner_info = { partners: [] }
