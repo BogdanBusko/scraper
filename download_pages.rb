@@ -5,6 +5,7 @@ require 'json'
 # Create structure of folders
 Dir.mkdir('pages') if !File.exists?('pages')
 Dir.mkdir('partners') if !File.exists?('partners')
+Dir.mkdir('partners/images') if !File.exists?('partners/images')
 
 # Downloan page first page
 url = 'https://app.softserveinc.com/discount/en/partner/'
@@ -48,9 +49,20 @@ puts "Pages downloaded #{urls.count}\t\t"
 # Scrap information about partner
 partner_info = { partners: [] }
 
-Dir['./partners/*'].each do |page|
+Dir['./partners/*.html'].each do |page|
   partner = {}
   data = Nokogiri::HTML(File.read(page)).css('div.PartnerDetail > div.media')
+
+  img_html = data.css('div.media-discount-prev_image > a > img')
+  if img_html.any?
+    img_link = 'https://app.softserveinc.com' + img_html['src']
+    begin
+      img_name = File.basename(img_link)
+      File.write("partners/images/#{img_name}", open(img_link, &:read))
+    rescue URI::InvalidURIError
+      img_name = nil
+    end
+  end
 
   partner[:title] = data.css('div.media_body > h2.media-discount-prev_title').text
   partner[:text] = data.css('div.media_body > p.media-discount-prev_text').text
@@ -58,6 +70,7 @@ Dir['./partners/*'].each do |page|
   partner[:discount] = data.css('div.partner_right > div.media-discount-prev_disc').text
   partner[:location] = data.css('div.media_body > div.media-discount-prev_location > div')
     .map{ |location| location.css('span > a').text }
+  partner[:image] = img_name
   partner_info[:partners] << partner
 end
 
