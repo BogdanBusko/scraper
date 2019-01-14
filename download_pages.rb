@@ -7,6 +7,7 @@ Dir.mkdir('pages') if !File.exists?('pages')
 Dir.mkdir('partners') if !File.exists?('partners')
 Dir.mkdir('partners/images') if !File.exists?('partners/images')
 
+=begin
 # Downloan page first page
 url = 'https://app.softserveinc.com/discount/en/partner/'
 File.write('./pages/partner.html', open(url, &:read))
@@ -46,6 +47,21 @@ end
 
 puts "Pages downloaded #{urls.count}\t\t"
 
+# Download partners logo
+url = 'https://app.softserveinc.com'
+
+Dir['./partners/*.html'].each do |page|
+  image = Nokogiri::HTML(File.read(page)).css('div.PartnerDetail > div.media > div.media_left > div.media-discount-prev_image > a > img')
+
+  unless image.empty?
+    extension = File.extname(image.attr('src'))
+    filename = File.basename(page, '.html')
+
+    File.write("./partners/images/#{filename}#{extension}", open(URI.parse(URI.encode(url + image.attr('src'))), &:read))
+  end
+end
+=end
+
 # Scrap information about partner
 partner_info = { partners: [] }
 
@@ -53,24 +69,12 @@ Dir['./partners/*.html'].each do |page|
   partner = {}
   data = Nokogiri::HTML(File.read(page)).css('div.PartnerDetail > div.media')
 
-  img_html = data.css('div.media-discount-prev_image > a > img')
-  if img_html.any?
-    img_link = 'https://app.softserveinc.com' + img_html['src']
-    begin
-      img_name = File.basename(img_link)
-      File.write("partners/images/#{img_name}", open(img_link, &:read))
-    rescue URI::InvalidURIError
-      img_name = nil
-    end
-  end
-
   partner[:title] = data.css('div.media_body > h2.media-discount-prev_title').text
   partner[:text] = data.css('div.media_body > p.media-discount-prev_text').text
   partner[:category] = data.css('div.media_body > p.category > span').text
   partner[:discount] = data.css('div.partner_right > div.media-discount-prev_disc').text
   partner[:location] = data.css('div.media_body > div.media-discount-prev_location > div')
     .map{ |location| location.css('span > a').text }
-  partner[:image] = img_name
   partner_info[:partners] << partner
 end
 
