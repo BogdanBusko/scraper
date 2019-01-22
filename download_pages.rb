@@ -70,12 +70,34 @@ Dir['./partners/*.html'].each do |page|
   data = Nokogiri::HTML(File.read(page)).css('div.PartnerDetail > div.media')
 
   partner[:title] = data.css('div.media_body > h2.media-discount-prev_title').text
-  partner[:text] = data.css('div.media_body > p.media-discount-prev_text').text
+  partner[:description] = data.css('div.media_body > p.media-discount-prev_text').text.gsub("\r", "\n")
+  short_description = partner[:description][0..69].gsub("\n", "")
+  partner[:short_description] = short_description + (partner[:description].length > 70 ? '...' : '')
   partner[:category] = data.css('div.media_body > p.category > span').text
   partner[:discount] = data.css('div.partner_right > div.media-discount-prev_disc').text
   partner[:location] = data.css('div.media_body > div.media-discount-prev_location > div')
-    .map{ |location| location.css('span > a').text }
+    .map do |location|
+      data = {}
+      coordinates_hash = {}
+      location_hash = {}
+
+      data[:sity] = location.css('span > a').text
+      js_script = location.css('script').text.gsub("\n", "").gsub(' ', '').gsub("\"", "")
+      coordinates = js_script.split('markers.push(pointdata);')
+      coordinates[0][/{(.*?)}/m].gsub('{', '').gsub('}', '').split(',').each do |data|
+        coordinates_hash[data.split(':')[0].to_sym] = data.split(':')[1]
+      end
+
+      coordinates[1][/{(.*?)}/m].gsub('{', '').gsub('}', '').split(',').each do |data|
+        location_hash[data.split(':')[0].to_sym] = data.split(':')[1]
+      end
+
+      data[:map_coordinates] = coordinates_hash
+      data[:map_location] = location_hash
+      data
+  end
   partner_info[:partners] << partner
 end
 
 File.write('partners.json', partner_info.to_json)
+
